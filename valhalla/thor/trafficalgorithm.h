@@ -8,6 +8,7 @@
 #include <utility>
 #include <memory>
 
+#include <valhalla/baldr/historical_speed_tile.h>
 #include <valhalla/thor/astar.h>
 
 namespace valhalla {
