@@ -52,9 +52,16 @@ public:
 
 
 protected:
+  // Current costing mode
+  std::shared_ptr<sif::DynamicCost> costing_;
+
   // Map of real-time speeds
   std::unordered_map<uint32_t, std::vector<uint8_t>> real_time_speeds_;
   std::vector<uint8_t> empty_speeds_;
+
+  void Expand(baldr::GraphReader& graphreader, const baldr::GraphId& node,
+              const sif::EdgeLabel& pred, const uint32_t pred_idx,
+              const bool from_transition);
 
   /**
    * Get address of the real-time speed table for the specified tile.
