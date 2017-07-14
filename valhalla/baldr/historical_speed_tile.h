@@ -2,6 +2,7 @@
 #define VALHALLA_BALDR_HISTORICAL_SPEED_TILE_H_
 
 #include <cstdint>
+#include <unordered_map>
 
 #include <valhalla/midgard/constants.h>
 #include <valhalla/baldr/graphid.h>
@@ -37,7 +38,6 @@ struct TransitionTime {
   uint8_t seconds_[midgard::kHoursPerWeek];   // Do we want to make this a variable size?
 };
 
-using transition_pair_t = std::pair<GraphId, uint8_t[midgard::kHoursPerWeek]>;
 
 /**
  * Historical speed information for a tile within the Tiled Hierarchical Graph.
@@ -106,8 +106,12 @@ class HistoricalSpeedTile {
   // List of historical speeds. Number of segments * number of entries.
   uint8_t* historical_speeds_;
 
-  // Map of transition times (implementation TBD - read in at tile load?)
-  std::unordered_map<uint32_t, transition_pair_t> transition_times_;
+  // Transition time records (fixed size). Sorted by segment Id
+  TransitionTime* transition_times_;
+
+  // Map of transition times - sparse mapping from segment Id to the index
+  // of the first transition time record from that segment Id
+  std::unordered_map<uint32_t, uint32_t> transition_time_map_;
 };
 
 }
