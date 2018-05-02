@@ -546,7 +546,8 @@ bin_PROGRAMS += \
 	valhalla_ways_to_edges \
 	valhalla_build_speeds \
 	valhalla_build_statistics \
-	valhalla_associate_segments
+	valhalla_associate_segments \
+	valhalla_associate_openlr
 valhalla_benchmark_admins_SOURCES = src/mjolnir/valhalla_benchmark_admins.cc
 valhalla_benchmark_admins_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@
 valhalla_benchmark_admins_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ @PROTOC_LIBS@ -lz -lgeos -lsqlite3 -lspatialite $(BOOST_LIBS) libvalhalla.la
@@ -583,6 +584,9 @@ valhalla_build_statistics_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLA
 valhalla_associate_segments_SOURCES = src/valhalla_associate_segments.cc src/proto/segment.pb.cc src/proto/tile.pb.cc
 valhalla_associate_segments_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@
 valhalla_associate_segments_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS) libvalhalla.la
+valhalla_associate_openlr_SOURCES = src/valhalla_associate_openlr.cc
+valhalla_associate_openlr_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@ @RAPIDJSON_CPPFLAGS@
+valhalla_associate_openlr_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS) libvalhalla.la
 endif
 
 bin_SCRIPTS = \
@@ -662,7 +666,8 @@ check_PROGRAMS = \
 	test/pedestriancost \
 	test/transitcost \
 	test/truckcost \
-	test/actor
+	test/actor \
+	test/openlr
 test_logging_SOURCES = test/logging.cc test/test.cc
 test_logging_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) -DLOGGING_LEVEL_ALL
 test_logging_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) $(BOOST_LIBS) libvalhalla.la
@@ -870,6 +875,9 @@ test_truckcost_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST
 test_actor_SOURCES = test/actor.cc test/test.cc
 test_actor_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@
 test_actor_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS) libvalhalla.la
+test_openlr_SOURCES = test/openlr.cc test/test.cc
+test_openlr_CPPFLAGS = $(DEPS_CFLAGS) $(SERVICE_DEPS_CFLAGS) @BOOST_CPPFLAGS@
+test_openlr_LDADD = $(DEPS_LIBS) $(SERVICE_DEPS_LIBS) @BOOST_LDFLAGS@ $(BOOST_LIBS) libvalhalla.la
 
 if SERVICES
 check_PROGRAMS += \
