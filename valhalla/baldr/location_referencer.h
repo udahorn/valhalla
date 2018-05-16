@@ -4,8 +4,8 @@
 #include "baldr/graphreader.h"
 #include "baldr/pathlocation.h"
 #include "midgard/openlr.h"
-#include "thor/pathinfo.h"
 #include "thor/astar.h"
+#include "thor/pathinfo.h"
 
 namespace valhalla {
 namespace baldr {
@@ -29,22 +29,21 @@ constexpr uint32_t kEdgeDistanceTolerance = 20.0;
 // in the descriptor are std::floor(length/58.6).
 // Returned matches therefore could be +/- 58.6 in length and still
 // be correct due to precision limitations
-constexpr double kLengthToleranceMetres = 58.6;  // std::round(15000/256)
+constexpr double kLengthToleranceMetres = 58.6; // std::round(15000/256)
 
 // Bearings are stored as 5 bits referring to a segment.  Each segment
 // is thus 360/2^5 ~= 11.25 degrees
-constexpr double kSegmentSize = 11.25/2;
-
+constexpr double kSegmentSize = 11.25 / 2;
 }
 
 struct LocationReferencer {
 
-  LocationReferencer(baldr::GraphReader &graphreader);
+  LocationReferencer(baldr::GraphReader& graphreader);
 
-  std::vector<EdgeMatch> match(const midgard::OpenLR::TwoPointLinearReference &locref);
+  std::vector<EdgeMatch> match(const midgard::OpenLR::TwoPointLinearReference& locref);
 
 private:
-  baldr::GraphReader &m_reader;
+  baldr::GraphReader& m_reader;
   sif::TravelMode m_travel_mode;
   std::shared_ptr<thor::AStarPathAlgorithm> m_path_algo;
   std::shared_ptr<sif::DynamicCost> m_costing;

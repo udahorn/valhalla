@@ -1,38 +1,36 @@
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 
-#include "midgard/logging.h"
 #include "baldr/graphreader.h"
 #include "baldr/merge.h"
-#include "loki/search.h"
 #include "loki/node_search.h"
-#include "thor/pathalgorithm.h"
-#include "thor/astar.h"
-#include "mjolnir/graphtilebuilder.h"
+#include "loki/search.h"
+#include "midgard/logging.h"
 #include "midgard/openlr.h"
+#include "mjolnir/graphtilebuilder.h"
+#include "thor/astar.h"
+#include "thor/pathalgorithm.h"
 
 #include "baldr/location_referencer.h"
 
-#include <boost/program_options.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/algorithm/cxx11/all_of.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/iterator/reverse_iterator.hpp>
+#include <boost/program_options.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
-#include <deque>
 #include <algorithm>
-#include <thread>
-#include <mutex>
+#include <deque>
 #include <future>
+#include <mutex>
+#include <thread>
 
 #include "config.h"
 
-
 namespace valhalla {
 namespace baldr {
-
 
 namespace {
 
@@ -45,9 +43,9 @@ inline uint32_t abs_u32_diff(const uint32_t a, const uint32_t b) {
 // Use this method to determine whether an edge should be allowed along the
 // merged path. This method should match the predicate used to create OSMLR
 // segments.
-bool allow_edge_pred(const baldr::DirectedEdge *edge) {
+bool allow_edge_pred(const baldr::DirectedEdge* edge) {
   return (!edge->trans_up() && !edge->trans_down() && !edge->is_shortcut() &&
-           edge->classification() != baldr::RoadClass::kServiceOther &&
+          edge->classification() != baldr::RoadClass::kServiceOther &&
           (edge->use() == baldr::Use::kRoad || edge->use() == baldr::Use::kRamp) &&
           !edge->roundabout() && !edge->internal() &&
           (edge->forwardaccess() & baldr::kVehicularAccess) != 0);
@@ -64,7 +62,7 @@ enum class FormOfWay {
   kOther = 7
 };
 
-FormOfWay form_of_way(const baldr::DirectedEdge *e) {
+FormOfWay form_of_way(const baldr::DirectedEdge* e) {
   // Check if oneway. Assumes forward access is allowed. Edge is oneway if
   // no reverse vehicular access is allowed
   bool oneway = (e->reverseaccess() & baldr::kVehicularAccess) == 0;
@@ -103,21 +101,21 @@ FormOfWay form_of_way(const baldr::DirectedEdge *e) {
 class DistanceOnlyCost : public sif::DynamicCost {
 public:
   DistanceOnlyCost(sif::TravelMode travel_mode)
-    : DynamicCost(boost::property_tree::ptree(), travel_mode) {
+      : DynamicCost(boost::property_tree::ptree(), travel_mode) {
   }
 
-  virtual ~DistanceOnlyCost() { }
+  virtual ~DistanceOnlyCost() {
+  }
   uint32_t access_mode() const {
-      return  baldr::kVehicularAccess;
+    return baldr::kVehicularAccess;
   }
   bool Allowed(const baldr::DirectedEdge* edge,
                const sif::EdgeLabel& pred,
                const baldr::GraphTile*& tile,
                const baldr::GraphId& edgeid,
-               const uint32_t current_time) const 
-  {
-      return allow_edge_pred(edge) &&
-          (pred.opp_local_idx() != edge->localedgeidx());
+               const uint64_t current_time,
+               const uint32_t tz_index) const override {
+    return allow_edge_pred(edge) && (pred.opp_local_idx() != edge->localedgeidx());
   };
 
   bool AllowedReverse(const baldr::DirectedEdge* edge,
@@ -125,59 +123,57 @@ public:
                       const baldr::DirectedEdge* opp_edge,
                       const baldr::GraphTile*& tile,
                       const baldr::GraphId& edgeid,
-                      const uint32_t current_time) const
-  {
-      // Do not allow U-turns/back-tracking
-      return allow_edge_pred(edge) &&
-            (pred.opp_local_idx() != edge->localedgeidx());
+                      const uint64_t current_time,
+                      const uint32_t tz_index) const override {
+    // Do not allow U-turns/back-tracking
+    return allow_edge_pred(edge) && (pred.opp_local_idx() != edge->localedgeidx());
   }
 
-  bool Allowed(const baldr::NodeInfo* node) const 
-  {
-      return true;
+  bool Allowed(const baldr::NodeInfo* node) const override {
+    return true;
   }
 
-  sif::Cost EdgeCost(const baldr::DirectedEdge* edge) const {
-      float edge_len(edge->length());
-      return {edge_len, edge_len};
+  sif::Cost EdgeCost(const baldr::DirectedEdge* edge) const override {
+    float edge_len(edge->length());
+    return {edge_len, edge_len};
   }
 
-  const sif::EdgeFilter GetEdgeFilter() const {
-      return [](const baldr::DirectedEdge *edge) -> float {
-          return allow_edge_pred(edge) ? 1.0f : 0.0f;
-      };
+  const sif::EdgeFilter GetEdgeFilter() const override {
+    return [](const baldr::DirectedEdge* edge) -> float {
+      return allow_edge_pred(edge) ? 1.0f : 0.0f;
+    };
   }
 
-  const sif::NodeFilter GetNodeFilter() const {
-      return [](const baldr::NodeInfo *) -> bool {
-          return false;
-      };
+  const sif::NodeFilter GetNodeFilter() const override {
+    return [](const baldr::NodeInfo*) -> bool { return false; };
   }
-  float AStarCostFactor() const {
-      return 1.0f;
+  float AStarCostFactor() const override {
+    return 1.0f;
   }
 };
 
-baldr::Location location_for_lrp(const valhalla::midgard::PointLL &ll, int bearing, int tolerance) {
+baldr::Location location_for_lrp(const valhalla::midgard::PointLL& ll, int bearing, int tolerance) {
   baldr::Location location(ll);
   location.heading_ = bearing;
   location.heading_tolerance_ = tolerance;
   return location;
 }
 
-odin::Location loki_search_single(const baldr::Location &loc, baldr::GraphReader &reader, uint8_t level) {
-  //we dont want non real edges but also we want the edges to be on the right level
-  //also right now only driveable edges please
+odin::Location
+loki_search_single(const baldr::Location& loc, baldr::GraphReader& reader, uint8_t level) {
+  // we dont want non real edges but also we want the edges to be on the right level
+  // also right now only driveable edges please
   auto edge_filter = [level](const DirectedEdge* edge) -> float {
     return (edge->endnode().level() == level && allow_edge_pred(edge)) ? 1.0f : 0.0f;
   };
 
-  //we only have one location so we only get one result
+  // we only have one location so we only get one result
   std::vector<baldr::Location> locs{loc};
   locs.back().radius_ = kEdgeDistanceTolerance;
   baldr::PathLocation path_loc(loc);
-  auto results = loki::Search(locs, reader, loki::PassThroughEdgeFilter, loki::PassThroughNodeFilter);
-  if(results.size())
+  auto results =
+      loki::Search(locs, reader, loki::PassThroughEdgeFilter, loki::PassThroughNodeFilter);
+  if (results.size())
     path_loc = std::move(results.begin()->second);
 
   odin::Location l;
@@ -189,21 +185,19 @@ odin::Location loki_search_single(const baldr::Location &loc, baldr::GraphReader
 } // anonymous namespace
 
 LocationReferencer::LocationReferencer(baldr::GraphReader& graphreader)
-  : m_reader{graphreader},
-    m_travel_mode(sif::TravelMode::kDrive),
-    m_path_algo(new thor::AStarPathAlgorithm()),
-    m_costing(new DistanceOnlyCost(m_travel_mode)) 
-{
+    : m_reader{graphreader}, m_travel_mode(sif::TravelMode::kDrive),
+      m_path_algo(new thor::AStarPathAlgorithm()), m_costing(new DistanceOnlyCost(m_travel_mode)) {
 }
 
-std::vector<EdgeMatch> LocationReferencer::match(const midgard::OpenLR::TwoPointLinearReference &locRef)
-{
+std::vector<EdgeMatch>
+LocationReferencer::match(const midgard::OpenLR::TwoPointLinearReference& locRef) {
   std::vector<EdgeMatch> edges;
   const uint32_t expected_length = locRef.getLength();
 
   // check all the interim points of the location reference
   // TODO: figure out which level to pass in here
-  // TODO: origin search should consider outgoing bearing, dest search should consider incoming bearing
+  // TODO: origin search should consider outgoing bearing, dest search should consider incoming
+  // bearing
   // TODO - reject edges if bearing from origin is outside of tolerance?
   // TODO - do we need to use Form of Way in the Allowed costing method?
   auto origin = loki_search_single(baldr::Location(locRef.getFirstCoordinate()), m_reader, 0);
@@ -213,18 +207,14 @@ std::vector<EdgeMatch> LocationReferencer::match(const midgard::OpenLR::TwoPoint
     return std::vector<EdgeMatch>();
   }
   auto dest = loki_search_single(
-                  location_for_lrp(
-                      locRef.getLastCoordinate(),
-                      locRef.getLastBearing(),
-                      kSegmentSize / 2),
-                  m_reader,
-                  0); // TODO figure out level
+      location_for_lrp(locRef.getLastCoordinate(), locRef.getLastBearing(), kSegmentSize / 2),
+      m_reader,
+      0); // TODO figure out level
   if (dest.path_edges_size() == 0) {
     LOG_DEBUG("Unable to find edge near point " + std::to_string(locRef.getLastCoordinate()) +
               ". Segment cannot be matched, discarding.");
     return std::vector<EdgeMatch>();
   }
-
 
   // make sure there's no state left over from previous paths
   m_path_algo->Clear();
@@ -235,8 +225,9 @@ std::vector<EdgeMatch> LocationReferencer::match(const midgard::OpenLR::TwoPoint
   auto path = m_path_algo->GetBestPath(origin, dest, m_reader, &m_costing, m_travel_mode);
   if (path.empty()) {
     // what to do if there's no path?
-    LOG_DEBUG("No route to destination " + std::to_string(locRef.getLastCoordinate()) + " from origin point " +
-              std::to_string(coord) + ". Segment cannot be matched, discarding.");
+    LOG_DEBUG("No route to destination " + std::to_string(locRef.getLastCoordinate()) +
+              " from origin point " + std::to_string(coord) +
+              ". Segment cannot be matched, discarding.");
     return std::vector<EdgeMatch>();
   }
 
@@ -244,18 +235,20 @@ std::vector<EdgeMatch> LocationReferencer::match(const midgard::OpenLR::TwoPoint
   // cost and elapsed time - so elapsed time of the last edge is total
   // path distance.
   if (abs_u32_diff(path.back().elapsed_time, expected_length) > kLengthToleranceMetres) {
-    LOG_DEBUG("Found path of " + std::to_string(path.back().elapsed_time) + " is > " + std::to_string(kLengthToleranceMetres) +
-        " different than the expected length of " + expected_length + ". Segment cannot be matched, discarding.");
+    LOG_DEBUG("Found path of " + std::to_string(path.back().elapsed_time) + " is > " +
+              std::to_string(kLengthToleranceMetres) + " different than the expected length of " +
+              expected_length + ". Segment cannot be matched, discarding.");
     return std::vector<EdgeMatch>();
   }
 
   // Add edges to the matched path.
   // TODO: Remove duplicate instances of the edge ID in the path info.
   // TODO: Calculate proper % offsets at start/end edges according to origin/destination position
-  for (const auto &info : path) {
+  for (const auto& info : path) {
     const GraphTile* tile = m_reader.GetGraphTile(info.edgeid);
     const DirectedEdge* edge = tile->directededge(info.edgeid);
-    edges.emplace_back(EdgeMatch{info.edgeid, edge->length(), 0.0f, 1.0f});  // TODO - set first and last edge full_edge flag
+    edges.emplace_back(EdgeMatch{info.edgeid, edge->length(), 0.0f,
+                                 1.0f}); // TODO - set first and last edge full_edge flag
   }
   return edges;
 }

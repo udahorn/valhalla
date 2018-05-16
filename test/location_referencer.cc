@@ -1,29 +1,28 @@
 #include "test.h"
 
 #include "baldr/graphreader.h"
+#include "baldr/location.h"
 #include "baldr/location_referencer.h"
 #include "loki/search.h"
 #include "midgard/openlr.h"
-#include "mjolnir/pbfgraphparser.h"
 #include "mjolnir/graphbuilder.h"
 #include "mjolnir/graphenhancer.h"
 #include "mjolnir/graphtilebuilder.h"
 #include "mjolnir/graphvalidator.h"
-#include "baldr/location.h"
+#include "mjolnir/pbfgraphparser.h"
 #include "sif/dynamiccost.h"
 #include "sif/pedestriancost.h"
 #include "thor/astar.h"
 
-
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
 
-#include <iostream>
-#include <string>
-#include <sstream>
 #include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
 
 using namespace std;
 using namespace valhalla::midgard::OpenLR;
@@ -32,14 +31,15 @@ using namespace valhalla::midgard::OpenLR;
 constexpr double kPrecisionThreshold = 0.00001;
 
 struct testfixture {
-    std::string descriptor;
+  std::string descriptor;
 };
 
 boost::property_tree::ptree json_to_pt(const std::string& json) {
-    std::stringstream ss; ss << json;
-    boost::property_tree::ptree pt;
-    boost::property_tree::read_json(ss, pt);
-    return pt;
+  std::stringstream ss;
+  ss << json;
+  boost::property_tree::ptree pt;
+  boost::property_tree::read_json(ss, pt);
+  return pt;
 }
 
 // fake config - non-const so that command-line arguments can update it
@@ -78,89 +78,84 @@ std::string descriptor_filename = "NOTSET";
 std::string map_filename = "NOTSET";
 
 namespace std {
-std::string to_string(const valhalla::midgard::PointLL &p) {
+std::string to_string(const valhalla::midgard::PointLL& p) {
   std::ostringstream out;
   out.precision(16);
   out << "PointLL(" << p.lat() << ", " << p.lng() << ")";
   return out.str();
 }
 
-std::string to_string(const valhalla::baldr::GraphId &i) {
+std::string to_string(const valhalla::baldr::GraphId& i) {
   std::ostringstream out;
   out << "OSMLR GraphId(" << i.tileid() << ", " << i.level() << ", " << i.id() << ")";
   return out.str();
 }
 } // namespace std
 
-
 namespace {
 
-  void test_match_location_references() {
+void test_match_location_references() {
 
-    using namespace valhalla;
+  using namespace valhalla;
 
-    conf.get_child("mjolnir").put("tile_dir","test/data/" + std::string(map_filename) + "_tiles");
+  conf.get_child("mjolnir").put("tile_dir", "test/data/" + std::string(map_filename) + "_tiles");
 
-
-    //setup and purge
-    baldr::GraphReader graph_reader(conf.get_child("mjolnir"));
-    if (!boost::filesystem::exists("test/data/"+std::string(map_filename) +"_tiles" ))
-    {
-      for(const auto& level : baldr::TileHierarchy::levels()) {
-        auto level_dir = graph_reader.tile_dir() + "/" + std::to_string(level.first);
-        if(boost::filesystem::exists(level_dir) && !boost::filesystem::is_empty(level_dir)) {
-          boost::filesystem::remove_all(level_dir);
-        }
+  // setup and purge
+  baldr::GraphReader graph_reader(conf.get_child("mjolnir"));
+  if (!boost::filesystem::exists("test/data/" + std::string(map_filename) + "_tiles")) {
+    for (const auto& level : baldr::TileHierarchy::levels()) {
+      auto level_dir = graph_reader.tile_dir() + "/" + std::to_string(level.first);
+      if (boost::filesystem::exists(level_dir) && !boost::filesystem::is_empty(level_dir)) {
+        boost::filesystem::remove_all(level_dir);
       }
-
-      std::string ways_file = map_filename + "_openlr_ways.bin";
-      std::string way_nodes_file = map_filename + "_openlr_ways_nodes.bin";
-      std::string access_file = map_filename + "_openlr_access.bin";
-      std::string restriction_file = map_filename + "_openlr_restrictions.bin";
-
-
-      auto osmdata = mjolnir::PBFGraphParser::Parse(conf.get_child("mjolnir"), { map_filename },
-                                           ways_file, way_nodes_file, access_file, restriction_file);
-      // Build the graph using the OSMNodes and OSMWays from the parser
-      mjolnir::GraphBuilder::Build(conf, osmdata, ways_file, way_nodes_file, restriction_file);
-      // Enhance the local level of the graph. This adds information to the local
-      // level that is usable across all levels (density, administrative
-      // information (and country based attribution), edge transition logic, etc.
-      mjolnir::GraphEnhancer::Enhance(conf, access_file);
-
-      // Validate the graph and add information that cannot be added until
-      // full graph is formed.
-      mjolnir::GraphValidator::Validate(conf);
     }
 
-    baldr::LocationReferencer referencer(graph_reader);
+    std::string ways_file = map_filename + "_openlr_ways.bin";
+    std::string way_nodes_file = map_filename + "_openlr_ways_nodes.bin";
+    std::string access_file = map_filename + "_openlr_access.bin";
+    std::string restriction_file = map_filename + "_openlr_restrictions.bin";
 
-    std::ifstream input( descriptor_filename );
+    auto osmdata =
+        mjolnir::PBFGraphParser::Parse(conf.get_child("mjolnir"), {map_filename}, ways_file,
+                                       way_nodes_file, access_file, restriction_file);
+    // Build the graph using the OSMNodes and OSMWays from the parser
+    mjolnir::GraphBuilder::Build(conf, osmdata, ways_file, way_nodes_file, restriction_file);
+    // Enhance the local level of the graph. This adds information to the local
+    // level that is usable across all levels (density, administrative
+    // information (and country based attribution), edge transition logic, etc.
+    mjolnir::GraphEnhancer::Enhance(conf, access_file);
 
-    for( std::string openlr_descriptor_base64; getline( input, openlr_descriptor_base64 ); )
-    {
-      //std::string openlr_descriptor_base64 = line.substr(0, line.find(","));
+    // Validate the graph and add information that cannot be added until
+    // full graph is formed.
+    mjolnir::GraphValidator::Validate(conf);
+  }
 
-      auto locRef = TwoPointLinearReference::fromBase64(openlr_descriptor_base64);
+  baldr::LocationReferencer referencer(graph_reader);
 
-      auto edgematches = referencer.match(locRef);
-      std::cout << openlr_descriptor_base64 << " -> ";
-      if (edgematches.empty()) {
-        std::cout << "NO MATCH";
-      } else {
-        std::cout << "expectedLength = " << locRef.getLength() << ", ";
-        for (auto edgematch : edgematches) {
-          std::cout << "  " << edgematch.edgeid << ", length=" << edgematch.length << ", from " << edgematch.start_pct << "% to " << edgematch.end_pct << "% ";
-        }
+  std::ifstream input(descriptor_filename);
+
+  for (std::string openlr_descriptor_base64; getline(input, openlr_descriptor_base64);) {
+    // std::string openlr_descriptor_base64 = line.substr(0, line.find(","));
+
+    auto locRef = TwoPointLinearReference::fromBase64(openlr_descriptor_base64);
+
+    auto edgematches = referencer.match(locRef);
+    std::cout << openlr_descriptor_base64 << " -> ";
+    if (edgematches.empty()) {
+      std::cout << "NO MATCH";
+    } else {
+      std::cout << "expectedLength = " << locRef.getLength() << ", ";
+      for (auto edgematch : edgematches) {
+        std::cout << "  " << edgematch.edgeid << ", length=" << edgematch.length << ", from "
+                  << edgematch.start_pct << "% to " << edgematch.end_pct << "% ";
       }
-      std::cout << std::endl;
     }
-
+    std::cout << std::endl;
   }
 }
+}
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char* argv[]) {
   if (argc < 3) {
     std::cerr << "Usage: " << argv[0] << " <map.pbf> <descriptors.txt>" << std::endl;
     return EXIT_FAILURE;

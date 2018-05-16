@@ -207,6 +207,7 @@ set(valhalla_hdrs
   ${CMAKE_SOURCE_DIR}/valhalla/baldr/reutil.h
   ${CMAKE_SOURCE_DIR}/valhalla/baldr/edgetracker.h
   ${CMAKE_SOURCE_DIR}/valhalla/baldr/merge.h
+  ${CMAKE_SOURCE_DIR}/valhalla/baldr/location_referencer.h
   ${CMAKE_SOURCE_DIR}/valhalla/sif/costconstants.h
   ${CMAKE_SOURCE_DIR}/valhalla/sif/costfactory.h
   ${CMAKE_SOURCE_DIR}/valhalla/sif/autocost.h
@@ -305,6 +306,7 @@ set(valhalla_srcs
   ${CMAKE_SOURCE_DIR}/src/baldr/merge.cc
   ${CMAKE_SOURCE_DIR}/src/baldr/nodeinfo.cc
   ${CMAKE_SOURCE_DIR}/src/baldr/location.cc
+  ${CMAKE_SOURCE_DIR}/src/baldr/location_referencer.cc
   ${CMAKE_SOURCE_DIR}/src/baldr/pathlocation.cc
   ${CMAKE_SOURCE_DIR}/src/baldr/tilehierarchy.cc
   ${CMAKE_SOURCE_DIR}/src/baldr/turn.cc
@@ -598,7 +600,7 @@ set(tests aabb2 actor admin astar attributes_controller datetime directededge
   polyline2 queue routing sample sequence serializers sign signs streetname streetnames streetnames_factory
   streetnames_us streetname_us tilehierarchy tiles traffic_matcher  turn util_midgard
   util_odin util_skadi vector2 verbal_text_formatter verbal_text_formatter_us verbal_text_formatter_us_co
-  verbal_text_formatter_us_tx viterbi_search)
+  verbal_text_formatter_us_tx viterbi_search 	openlr location_referencer)
 
 if(ENABLE_DATA_TOOLS)
   list(APPEND tests countryaccess edgeinfobuilder graphbuilder graphparser graphtilebuilder
