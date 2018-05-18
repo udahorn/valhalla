@@ -71,6 +71,22 @@ public:
     return Create(name, pt);
   }
 
+  /**
+   * Convenience method to register all of the standard costing models.
+   */
+  void RegisterStandardCostingModels() {
+    Register("auto", CreateAutoCost);
+    Register("auto_shorter", CreateAutoShorterCost);
+    Register("bicycle", CreateBicycleCost);
+    Register("bus", CreateBusCost);
+    Register("hov", CreateHOVCost);
+    Register("motor_scooter", CreateMotorScooterCost);
+    Register("pedestrian", CreatePedestrianCost);
+    Register("truck", CreateTruckCost);
+    Register("transit", CreateTransitCost);
+  }
+
+
 private:
   std::map<std::string, factory_function_t> factory_funcs_;
 };

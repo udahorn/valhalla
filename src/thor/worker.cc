@@ -58,15 +58,7 @@ thor_worker_t::thor_worker_t(const boost::property_tree::ptree& config)
       reader(matcher_factory.graphreader()),
       long_request(config.get<float>("thor.logging.long_request")) {
   // Register edge/node costing methods
-  factory.Register("auto", sif::CreateAutoCost);
-  factory.Register("auto_shorter", sif::CreateAutoShorterCost);
-  factory.Register("bus", sif::CreateBusCost);
-  factory.Register("bicycle", sif::CreateBicycleCost);
-  factory.Register("hov", sif::CreateHOVCost);
-  factory.Register("motor_scooter", sif::CreateMotorScooterCost);
-  factory.Register("pedestrian", sif::CreatePedestrianCost);
-  factory.Register("transit", sif::CreateTransitCost);
-  factory.Register("truck", sif::CreateTruckCost);
+  factory.RegisterStandardCostingModels();
 
   for (const auto& item : config.get_child("meili.customizable")) {
     trace_customizable.insert(item.second.get_value<std::string>());

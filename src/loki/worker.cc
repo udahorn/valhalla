@@ -200,16 +200,7 @@ loki_worker_t::loki_worker_t(const boost::property_tree::ptree& config)
   max_best_paths_shape = config.get<size_t>("service_limits.trace.max_best_paths_shape");
 
   // Register edge/node costing methods
-  // TODO: move this into the loop above
-  factory.Register("auto", sif::CreateAutoCost);
-  factory.Register("auto_shorter", sif::CreateAutoShorterCost);
-  factory.Register("bus", sif::CreateBusCost);
-  factory.Register("bicycle", sif::CreateBicycleCost);
-  factory.Register("hov", sif::CreateHOVCost);
-  factory.Register("motor_scooter", sif::CreateMotorScooterCost);
-  factory.Register("pedestrian", sif::CreatePedestrianCost);
-  factory.Register("truck", sif::CreateTruckCost);
-  factory.Register("transit", sif::CreateTransitCost);
+  factory.RegisterStandardCostingModels();
 }
 
 void loki_worker_t::cleanup() {
